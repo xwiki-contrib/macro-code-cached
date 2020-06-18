@@ -3,7 +3,7 @@
 Cached (and Async) Code macro for improved performances.
 
 * Project Lead: [Vincent Massol](http://www.xwiki.org/xwiki/bin/view/XWiki/VincentMassol)
-* [Documentation & Downloads](http://extensions.xwiki.org/xwiki/bin/view/Extension/CachedCodeMacro/)
+* [Documentation & Downloads](http://extensions.xwiki.org/xwiki/bin/view/Extension/CodeCachedMacro/)
 * [Issue Tracker](http://jira.xwiki.org/browse/CODECACHE)
 * Communication: [Mailing List](http://dev.xwiki.org/xwiki/bin/view/Community/MailingLists), [IRC](http://dev.xwiki.org/xwiki/bin/view/Community/IRC)
 * [Development Practices](http://dev.xwiki.org)
