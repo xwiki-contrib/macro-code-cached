@@ -1,6 +1,6 @@
 # Cached Code Macro
 
-Cached Code macro for improved performances.
+Cached (and Async) Code macro for improved performances.
 
 * Project Lead: [Vincent Massol](http://www.xwiki.org/xwiki/bin/view/XWiki/VincentMassol)
 * [Documentation & Downloads](http://extensions.xwiki.org/xwiki/bin/view/Extension/CachedCodeMacro/)

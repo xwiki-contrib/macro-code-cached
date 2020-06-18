@@ -33,6 +33,7 @@
   <description>Cached Code macro for improved performances</description>
   <url>http://extensions.xwiki.org/xwiki/bin/view/Extension/CachedCodeMacro/</url>
   <properties>
+    <xwiki.jacoco.instructionRatio>0.79</xwiki.jacoco.instructionRatio>
     <!-- Extension Manager category -->
     <xwiki.extension.category>macro</xwiki.extension.category>
     <xwiki.issueManagement.system>jira</xwiki.issueManagement.system>
