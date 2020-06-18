@@ -90,10 +90,9 @@ public class CodeCachedMacro extends CodeMacro
         return result instanceof CompositeBlock ? result.getChildren() : Arrays.asList(result);
     }
 
-    @Override
-    public List<Block> parseContent(CodeMacroParameters parameters, String content,
+    List<Block> executeCodeMacro(CodeMacroParameters parameters, String content,
         MacroTransformationContext context) throws MacroExecutionException
     {
-        return super.parseContent(parameters, content, context);
+        return super.execute(parameters, content, context);
     }
 }

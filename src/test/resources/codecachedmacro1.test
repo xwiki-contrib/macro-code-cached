@@ -14,6 +14,7 @@ beginDocument
 beginMacroMarkerStandalone [code] [language=java] [public class CodeCachedMacro extends CodeMacro
 {
 }]
+beginGroup [[class]=[box]]
 beginGroup [[class]=[code]]
 beginFormat [NONE] [[style]=[font-weight: bold; color: #008000; ]]
 onWord [public]
@@ -41,6 +42,7 @@ beginFormat [NONE] [[style]=[color: #666666; ]]
 onSpecialSymbol [}]
 endFormat [NONE] [[style]=[color: #666666; ]]
 endGroup [[class]=[code]]
+endGroup [[class]=[box]]
 endMacroMarkerStandalone [code] [language=java] [public class CodeCachedMacro extends CodeMacro
 {
 }]

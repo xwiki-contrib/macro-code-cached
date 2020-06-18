@@ -101,7 +101,7 @@ public class CodeCachedBlockAsyncRenderer extends AbstractBlockAsyncRenderer
         // Note: method only called when the content is not cached.
         for (int i = 0; i < 3; i++) {
             try {
-                return new CompositeBlock(this.codeMacro.parseContent(this.parameters, this.content, this.context));
+                return new CompositeBlock(this.codeMacro.executeCodeMacro(this.parameters, this.content, this.context));
             } catch (MacroExecutionException e) {
                 // Seems that Pygments is not fully thread safe so retrying if an exception occurs to avoid:
                 //   Caused by: javax.script.ScriptException: RuntimeError: dictionary changed size during iteration in
