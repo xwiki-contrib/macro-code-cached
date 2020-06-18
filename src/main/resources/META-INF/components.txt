@@ -1,2 +1,3 @@
 500:org.xwiki.contrib.codecache.internal.CodeCachedMacro
-org.xwiki.contrib.codecache.internal.CodeCacheBlockAsyncRenderer
+org.xwiki.contrib.codecache.internal.CodeCachedBlockAsyncRenderer
+org.xwiki.contrib.codecache.internal.DefaultCodeCachedConfiguration

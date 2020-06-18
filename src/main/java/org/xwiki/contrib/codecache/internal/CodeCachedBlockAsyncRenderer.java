@@ -40,8 +40,8 @@ import org.xwiki.rendering.macro.code.CodeMacroParameters;
 import org.xwiki.rendering.syntax.Syntax;
 import org.xwiki.rendering.transformation.MacroTransformationContext;
 
-@Component(roles = CodeCacheBlockAsyncRenderer.class)
-public class CodeCacheBlockAsyncRenderer extends AbstractBlockAsyncRenderer
+@Component(roles = CodeCachedBlockAsyncRenderer.class)
+public class CodeCachedBlockAsyncRenderer extends AbstractBlockAsyncRenderer
 {
     @Inject
     private DocumentReferenceResolver<String> resolver;
@@ -63,15 +63,18 @@ public class CodeCacheBlockAsyncRenderer extends AbstractBlockAsyncRenderer
 
     private MacroTransformationContext context;
 
-    private  DocumentReference sourceReference;
+    private DocumentReference sourceReference;
+
+    private boolean async;
 
     void initialize(CodeCachedMacro codeMacro, CodeMacroParameters parameters,
-        String content, MacroTransformationContext context)
+        String content, MacroTransformationContext context, boolean async)
     {
         this.codeMacro = codeMacro;
         this.parameters = parameters;
         this.content = content;
         this.context = context;
+        this.async = async;
 
         this.inline = context.isInline();
         this.targetSyntax = context.getTransformationContext().getTargetSyntax();
@@ -142,7 +145,7 @@ public class CodeCacheBlockAsyncRenderer extends AbstractBlockAsyncRenderer
     @Override
     public boolean isAsyncAllowed()
     {
-        return true;
+        return this.async;
     }
 
     @Override

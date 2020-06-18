@@ -56,6 +56,9 @@ public class CodeCachedMacro extends CodeMacro
     @Inject
     private BlockAsyncRendererExecutor executor;
 
+    @Inject
+    private CodeCachedConfiguration macroConfiguration;
+
     @Override
     public boolean supportsInlineMode()
     {
@@ -66,13 +69,13 @@ public class CodeCachedMacro extends CodeMacro
     public List<Block> execute(CodeMacroParameters parameters, String content, MacroTransformationContext context)
         throws MacroExecutionException
     {
-        CodeCacheBlockAsyncRenderer renderer;
+        CodeCachedBlockAsyncRenderer renderer;
         try {
-            renderer = this.contextComponentManager.getInstance(CodeCacheBlockAsyncRenderer.class);
+            renderer = this.contextComponentManager.getInstance(CodeCachedBlockAsyncRenderer.class);
         } catch (ComponentLookupException e) {
             throw new MacroExecutionException("Failed to create code cache async renderer", e);
         }
-        renderer.initialize(this, parameters, content, context);
+        renderer.initialize(this, parameters, content, context, this.macroConfiguration.isAsync());
 
         AsyncRendererConfiguration configuration = new AsyncRendererConfiguration();
 
