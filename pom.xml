@@ -28,7 +28,7 @@
     <version>11.10</version>
   </parent>
   <artifactId>macro-code-cached</artifactId>
-  <version>1.0-SNAPSHOT</version>
+  <version>1.0</version>
   <name>Caching Code Macro</name>
   <description>Cached Code macro for improved performances</description>
   <url>http://extensions.xwiki.org/xwiki/bin/view/Extension/CachedCodeMacro/</url>
@@ -43,7 +43,7 @@
     <connection>scm:git:git://github.com/xwiki-contrib/macro-code-cached.git</connection>
     <developerConnection>scm:git:git@github.com:xwiki-contrib/macro-code-cached.git</developerConnection>
     <url>https://github.com/xwiki-contrib/macro-code-cached</url>
-    <tag>HEAD</tag>
+    <tag>macro-code-cached-1.0</tag>
   </scm>
   <developers>
     <developer>
