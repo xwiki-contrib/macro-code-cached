@@ -1,0 +1,47 @@
+.runTransformations
+.#-----------------------------------------------------
+.input|xwiki/2.1
+.#-----------------------------------------------------
+{{code language='java'}}
+public class CodeCachedMacro extends CodeMacro
+{
+}
+{{/code}}
+.#-----------------------------------------------------
+.expect|event/1.0
+.#-----------------------------------------------------
+beginDocument
+beginMacroMarkerStandalone [code] [language=java] [public class CodeCachedMacro extends CodeMacro
+{
+}]
+beginGroup [[class]=[code]]
+beginFormat [NONE] [[style]=[font-weight: bold; color: #008000; ]]
+onWord [public]
+endFormat [NONE] [[style]=[font-weight: bold; color: #008000; ]]
+onSpace
+beginFormat [NONE] [[style]=[font-weight: bold; color: #008000; ]]
+onWord [class]
+endFormat [NONE] [[style]=[font-weight: bold; color: #008000; ]]
+onSpace
+beginFormat [NONE] [[style]=[font-weight: bold; color: #0000FF; ]]
+onWord [CodeCachedMacro]
+endFormat [NONE] [[style]=[font-weight: bold; color: #0000FF; ]]
+onSpace
+beginFormat [NONE] [[style]=[font-weight: bold; color: #008000; ]]
+onWord [extends]
+endFormat [NONE] [[style]=[font-weight: bold; color: #008000; ]]
+onSpace
+onWord [CodeMacro]
+onNewLine
+beginFormat [NONE] [[style]=[color: #666666; ]]
+onSpecialSymbol [{]
+endFormat [NONE] [[style]=[color: #666666; ]]
+onNewLine
+beginFormat [NONE] [[style]=[color: #666666; ]]
+onSpecialSymbol [}]
+endFormat [NONE] [[style]=[color: #666666; ]]
+endGroup [[class]=[code]]
+endMacroMarkerStandalone [code] [language=java] [public class CodeCachedMacro extends CodeMacro
+{
+}]
+endDocument
