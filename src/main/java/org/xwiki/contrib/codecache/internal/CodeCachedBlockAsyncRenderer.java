@@ -40,6 +40,13 @@ import org.xwiki.rendering.macro.code.CodeMacroParameters;
 import org.xwiki.rendering.syntax.Syntax;
 import org.xwiki.rendering.transformation.MacroTransformationContext;
 
+/**
+ * Executes the standard code macro through the async rendering framework, so that its result is cached and,
+ * optionally, computed asynchronously.
+ *
+ * @version $Id$
+ * @since 1.0
+ */
 @Component(roles = CodeCachedBlockAsyncRenderer.class)
 public class CodeCachedBlockAsyncRenderer extends AbstractBlockAsyncRenderer
 {
