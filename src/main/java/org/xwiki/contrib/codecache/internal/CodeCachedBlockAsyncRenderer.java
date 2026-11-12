@@ -19,22 +19,25 @@
  */
 package org.xwiki.contrib.codecache.internal;
 
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.util.Base64;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import javax.inject.Inject;
 
+import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.xwiki.bridge.DocumentAccessBridge;
 import org.xwiki.component.annotation.Component;
 import org.xwiki.model.EntityType;
 import org.xwiki.model.ModelContext;
+import org.xwiki.model.reference.DocumentReference;
 import org.xwiki.model.reference.EntityReference;
 import org.xwiki.rendering.RenderingException;
 import org.xwiki.rendering.async.internal.block.AbstractBlockAsyncRenderer;
+import org.xwiki.rendering.async.internal.block.BlockAsyncRendererResult;
 import org.xwiki.rendering.block.Block;
 import org.xwiki.rendering.block.CompositeBlock;
 import org.xwiki.rendering.block.MetaDataBlock;
@@ -68,9 +71,14 @@ public class CodeCachedBlockAsyncRenderer extends AbstractBlockAsyncRenderer
     @Inject
     private CodeCachedBaseReferenceResolver baseReferenceResolver;
 
+    @Inject
+    private DocumentAccessBridge documentAccessBridge;
+
     private List<String> id;
 
     private String baseReference;
+
+    private DocumentReference contextDocumentReference;
 
     private boolean inline;
 
@@ -123,6 +131,10 @@ public class CodeCachedBlockAsyncRenderer extends AbstractBlockAsyncRenderer
         if (!this.inline
             && (StringUtils.isNotEmpty(this.parameters.getTitle()) || this.parameters.getImage() != null)) {
             this.baseReference = this.baseReferenceResolver.resolve(context);
+            // Some URLs generated for these references depend on the context document (e.g. the parent of the page to
+            // create for a link to a missing page). It's not part of the cache id: only the first, asynchronous,
+            // rendering produces URLs, the cached blocks being rendered later on in the context of each request.
+            this.contextDocumentReference = this.documentAccessBridge.getCurrentDocumentReference();
         }
         this.id = createId("rendering", "macro", "code", computeHash(context));
     }
@@ -140,7 +152,7 @@ public class CodeCachedBlockAsyncRenderer extends AbstractBlockAsyncRenderer
         return copy;
     }
 
-    private String computeHash(MacroTransformationContext macroContext) throws MacroExecutionException
+    private String computeHash(MacroTransformationContext macroContext)
     {
         StringBuilder key = new StringBuilder();
         append(key, this.content);
@@ -158,14 +170,8 @@ public class CodeCachedBlockAsyncRenderer extends AbstractBlockAsyncRenderer
         append(key, getCurrentWiki());
         append(key, this.baseReference);
 
-        try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            return Base64.getUrlEncoder().withoutPadding()
-                .encodeToString(digest.digest(key.toString().getBytes(StandardCharsets.UTF_8)));
-        } catch (NoSuchAlgorithmException e) {
-            // SHA-256 is guaranteed to be available on every Java platform.
-            throw new MacroExecutionException("Failed to compute the code macro cache id", e);
-        }
+        // The key is encoded in UTF-8.
+        return Base64.encodeBase64URLSafeString(DigestUtils.sha256(key.toString()));
     }
 
     private String getCurrentWiki()
@@ -184,6 +190,31 @@ public class CodeCachedBlockAsyncRenderer extends AbstractBlockAsyncRenderer
         } else {
             String stringValue = value.toString();
             key.append(stringValue.length()).append(':').append(stringValue);
+        }
+    }
+
+    @Override
+    public BlockAsyncRendererResult render(boolean async, boolean cached) throws RenderingException
+    {
+        if (!async || this.contextDocumentReference == null) {
+            return super.render(async, cached);
+        }
+
+        // The asynchronous execution happens outside of the document containing the macro, so make it the context
+        // document while the result is computed and rendered. Only the context document changes (not the current
+        // user), and nothing is executed in it: the title is only parsed and rendered. Loading that document makes the
+        // cached result depend on it, so it's computed again when the document is modified.
+        Map<String, Object> backup = new HashMap<>();
+        try {
+            this.documentAccessBridge.pushDocumentInContext(backup, this.contextDocumentReference);
+        } catch (Exception e) {
+            throw new RenderingException(
+                String.format("Failed to set the context document [%s]", this.contextDocumentReference), e);
+        }
+        try {
+            return super.render(async, cached);
+        } finally {
+            this.documentAccessBridge.popDocumentFromContext(backup);
         }
     }
 
