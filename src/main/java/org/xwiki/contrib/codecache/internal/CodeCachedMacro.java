@@ -39,7 +39,7 @@ import org.xwiki.rendering.macro.code.CodeMacroParameters;
 import org.xwiki.rendering.transformation.MacroTransformationContext;
 
 /**
- * Create a link to a section id, displaying the section number as the link label.
+ * Replaces the standard code macro to cache its result and, optionally, to compute it asynchronously.
  *
  * @version $Id$
  * @since 1.0

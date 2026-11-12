@@ -25,6 +25,12 @@ import javax.inject.Singleton;
 import org.xwiki.component.annotation.Component;
 import org.xwiki.configuration.ConfigurationSource;
 
+/**
+ * Reads the Caching Code Macro configuration from {@code xwiki.properties}.
+ *
+ * @version $Id$
+ * @since 1.0
+ */
 @Component
 @Singleton
 public class DefaultCodeCachedConfiguration implements CodeCachedConfiguration
