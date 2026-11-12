@@ -87,7 +87,12 @@ public class CodeCachedMacro extends CodeMacro
             throw new MacroExecutionException("Failed to execute code cache macro", e);
         }
 
-        return result instanceof CompositeBlock ? result.getChildren() : Arrays.asList(result);
+        // The cached blocks are shared by all the code macros with the same content and parameters, while the macro
+        // transformation modifies the blocks it receives (e.g. to execute the macros found in the title), so return a
+        // copy of them.
+        Block copy = result.clone();
+
+        return copy instanceof CompositeBlock ? copy.getChildren() : Arrays.asList(copy);
     }
 
     List<Block> executeCodeMacro(CodeMacroParameters parameters, String content,
