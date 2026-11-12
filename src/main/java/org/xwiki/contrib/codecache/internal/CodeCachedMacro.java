@@ -60,12 +60,6 @@ public class CodeCachedMacro extends CodeMacro
     private CodeCachedConfiguration macroConfiguration;
 
     @Override
-    public boolean supportsInlineMode()
-    {
-        return true;
-    }
-
-    @Override
     public List<Block> execute(CodeMacroParameters parameters, String content, MacroTransformationContext context)
         throws MacroExecutionException
     {

@@ -31,7 +31,7 @@
   <version>1.1-SNAPSHOT</version>
   <name>Caching Code Macro</name>
   <description>Cached Code macro for improved performances</description>
-  <url>http://extensions.xwiki.org/xwiki/bin/view/Extension/CachedCodeMacro/</url>
+  <url>https://extensions.xwiki.org/xwiki/bin/view/Extension/Caching%20Code%20Macro/</url>
   <properties>
     <xwiki.jacoco.instructionRatio>0.87</xwiki.jacoco.instructionRatio>
     <!-- Extension Manager category -->
