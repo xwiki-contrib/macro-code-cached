@@ -32,6 +32,8 @@ import org.xwiki.rendering.block.ParagraphBlock;
 import org.xwiki.rendering.block.WordBlock;
 import org.xwiki.rendering.block.XDOM;
 import org.xwiki.rendering.listener.MetaData;
+import org.xwiki.rendering.listener.reference.ResourceReference;
+import org.xwiki.rendering.listener.reference.ResourceType;
 import org.xwiki.rendering.macro.code.CodeMacroParameters;
 import org.xwiki.rendering.macro.code.source.CodeMacroSource;
 import org.xwiki.rendering.macro.code.source.CodeMacroSourceFactory;
@@ -49,6 +51,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 /**
@@ -65,6 +68,8 @@ class CodeCachedBlockAsyncRendererTest
 
     private static final String PAGE = "Space.Page";
 
+    private static final String BASE = "wiki:Space.Page";
+
     private static final MacroContentSourceReference SCRIPT_SOURCE =
         new MacroContentSourceReference(MacroContentSourceReference.TYPE_SCRIPT, "code");
 
@@ -73,6 +78,9 @@ class CodeCachedBlockAsyncRendererTest
 
     @MockComponent
     private ModelContext modelContext;
+
+    @MockComponent
+    private CodeCachedBaseReferenceResolver baseReferenceResolver;
 
     @InjectMockComponents
     private CodeCachedBlockAsyncRenderer renderer;
@@ -97,6 +105,7 @@ class CodeCachedBlockAsyncRendererTest
         List<String> id2 = getId(createContext("Other.Page", 3, CONTENT), CONTENT, javaParameters());
 
         assertEquals(id1, id2);
+        verifyNoInteractions(this.baseReferenceResolver);
     }
 
     @Test
@@ -166,6 +175,74 @@ class CodeCachedBlockAsyncRendererTest
         getId(createContext(PAGE, 1, ""), "", parameters);
 
         assertEquals(highlighted, this.renderer.execute(true, false).getChildren());
+    }
+
+    @Test
+    void idDependsOnDocumentWhenTitleOrImageIsSet() throws Exception
+    {
+        // The references found in the title and in the image are relative to the document containing the macro.
+        CodeMacroParameters titleParameters = javaParameters();
+        titleParameters.setTitle("[[Child]]");
+        CodeMacroParameters imageParameters = javaParameters();
+        imageParameters.setImage(new ResourceReference("image.png", ResourceType.URL));
+
+        for (CodeMacroParameters parameters : List.of(titleParameters, imageParameters)) {
+            when(this.baseReferenceResolver.resolve(any())).thenReturn(BASE);
+            List<String> id1 = getId(createContext(PAGE, 1, CONTENT), CONTENT, parameters);
+            when(this.baseReferenceResolver.resolve(any())).thenReturn("wiki:Other.Page");
+            List<String> id2 = getId(createContext(PAGE, 1, CONTENT), CONTENT, parameters);
+
+            assertNotEquals(id1, id2);
+        }
+    }
+
+    @Test
+    void executeIndicatesDocumentContainingMacroWhenTitleIsSet() throws Exception
+    {
+        // When the result is computed asynchronously, it's rendered outside of the document containing the macro, so
+        // the result must indicate which document the references are relative to.
+        CodeMacroParameters parameters = javaParameters();
+        parameters.setTitle("[[Child]]");
+        when(this.baseReferenceResolver.resolve(any())).thenReturn(BASE);
+        List<Block> highlighted = Collections.singletonList(new WordBlock("highlighted"));
+        when(this.codeMacro.executeCodeMacro(any(), eq(CONTENT), any())).thenReturn(highlighted);
+
+        getId(createContext(PAGE, 1, CONTENT), CONTENT, parameters);
+
+        assertEquals(List.of(new MetaDataBlock(highlighted, MetaData.BASE, BASE)),
+            this.renderer.execute(true, false).getChildren());
+    }
+
+    @Test
+    void executeDoesNotIndicateDocumentWithoutTitleOrImage() throws Exception
+    {
+        // Without references to resolve, the result is shared by the code macros of all the documents.
+        when(this.baseReferenceResolver.resolve(any())).thenReturn(BASE);
+        List<Block> highlighted = Collections.singletonList(new WordBlock("highlighted"));
+        when(this.codeMacro.executeCodeMacro(any(), eq(CONTENT), any())).thenReturn(highlighted);
+
+        getId(createContext(PAGE, 1, CONTENT), CONTENT, javaParameters());
+
+        assertEquals(highlighted, this.renderer.execute(true, false).getChildren());
+        verifyNoInteractions(this.baseReferenceResolver);
+    }
+
+    @Test
+    void executeDoesNotIndicateDocumentInInlineMode() throws Exception
+    {
+        // The title and the image are not displayed in inline mode.
+        CodeMacroParameters parameters = javaParameters();
+        parameters.setTitle("[[Child]]");
+        when(this.baseReferenceResolver.resolve(any())).thenReturn(BASE);
+        List<Block> highlighted = Collections.singletonList(new WordBlock("highlighted"));
+        when(this.codeMacro.executeCodeMacro(any(), eq(CONTENT), any())).thenReturn(highlighted);
+        MacroTransformationContext context = createContext(PAGE, 1, CONTENT);
+        context.setInline(true);
+
+        getId(context, CONTENT, parameters);
+
+        assertEquals(highlighted, this.renderer.execute(true, false).getChildren());
+        verifyNoInteractions(this.baseReferenceResolver);
     }
 
     private CodeMacroParameters javaParameters()
