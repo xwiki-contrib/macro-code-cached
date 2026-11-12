@@ -22,9 +22,16 @@ package org.xwiki.contrib.codecache.internal;
 import java.util.Collections;
 import java.util.List;
 
+import javax.inject.Named;
+
 import org.junit.jupiter.api.Test;
+import org.mockito.InOrder;
+import org.xwiki.bridge.DocumentAccessBridge;
+import org.xwiki.component.manager.ComponentManager;
 import org.xwiki.model.ModelContext;
+import org.xwiki.model.reference.DocumentReference;
 import org.xwiki.model.reference.WikiReference;
+import org.xwiki.rendering.RenderingException;
 import org.xwiki.rendering.block.Block;
 import org.xwiki.rendering.block.MacroBlock;
 import org.xwiki.rendering.block.MetaDataBlock;
@@ -38,6 +45,7 @@ import org.xwiki.rendering.macro.code.CodeMacroParameters;
 import org.xwiki.rendering.macro.code.source.CodeMacroSource;
 import org.xwiki.rendering.macro.code.source.CodeMacroSourceFactory;
 import org.xwiki.rendering.macro.source.MacroContentSourceReference;
+import org.xwiki.rendering.renderer.BlockRenderer;
 import org.xwiki.rendering.syntax.Syntax;
 import org.xwiki.rendering.transformation.MacroTransformationContext;
 import org.xwiki.rendering.transformation.TransformationContext;
@@ -47,10 +55,16 @@ import org.xwiki.test.junit5.mockito.MockComponent;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
@@ -82,10 +96,19 @@ class CodeCachedBlockAsyncRendererTest
     @MockComponent
     private CodeCachedBaseReferenceResolver baseReferenceResolver;
 
+    @MockComponent
+    private DocumentAccessBridge documentAccessBridge;
+
+    @MockComponent
+    @Named("context")
+    private ComponentManager contextComponentManager;
+
     @InjectMockComponents
     private CodeCachedBlockAsyncRenderer renderer;
 
     private final CodeCachedMacro codeMacro = mock(CodeCachedMacro.class);
+
+    private final DocumentReference contextDocument = new DocumentReference("wiki", "Space", "Page");
 
     @Test
     void idDependsOnContentAndNotOnPosition() throws Exception
@@ -245,6 +268,108 @@ class CodeCachedBlockAsyncRendererTest
         verifyNoInteractions(this.baseReferenceResolver);
     }
 
+    @Test
+    void idDoesNotDependOnContextDocument() throws Exception
+    {
+        // A page included in several pages has the same base reference but a different context document in each.
+        CodeMacroParameters parameters = javaParameters();
+        parameters.setTitle("[[Child]]");
+        when(this.baseReferenceResolver.resolve(any())).thenReturn(BASE);
+
+        when(this.documentAccessBridge.getCurrentDocumentReference()).thenReturn(this.contextDocument);
+        List<String> id1 = getId(createContext(PAGE, 1, CONTENT), CONTENT, parameters);
+        when(this.documentAccessBridge.getCurrentDocumentReference())
+            .thenReturn(new DocumentReference("wiki", "Space", "Includer"));
+        List<String> id2 = getId(createContext(PAGE, 1, CONTENT), CONTENT, parameters);
+
+        assertEquals(id1, id2);
+    }
+
+    @Test
+    void renderAsynchronouslyInContextDocumentWhenTitleIsSet() throws Exception
+    {
+        // Some URLs generated for the title references depend on the context document (e.g. the parent of the page to
+        // create for a link to a missing page), while the asynchronous rendering happens outside of that document.
+        CodeMacroParameters parameters = javaParameters();
+        parameters.setTitle("[[Missing]]");
+        when(this.baseReferenceResolver.resolve(any())).thenReturn(BASE);
+        when(this.documentAccessBridge.getCurrentDocumentReference()).thenReturn(this.contextDocument);
+        when(this.codeMacro.executeCodeMacro(any(), eq(CONTENT), any()))
+            .thenReturn(Collections.singletonList(new WordBlock("highlighted")));
+        BlockRenderer blockRenderer = mockBlockRenderer();
+
+        getId(createContext(PAGE, 1, CONTENT), CONTENT, parameters);
+        this.renderer.render(true, true);
+
+        InOrder inOrder = inOrder(this.documentAccessBridge, this.codeMacro, blockRenderer);
+        inOrder.verify(this.documentAccessBridge).pushDocumentInContext(any(), eq(this.contextDocument));
+        inOrder.verify(this.codeMacro).executeCodeMacro(any(), eq(CONTENT), any());
+        inOrder.verify(blockRenderer).render(any(Block.class), any());
+        inOrder.verify(this.documentAccessBridge).popDocumentFromContext(any());
+    }
+
+    @Test
+    void renderAsynchronouslyFailsWhenContextDocumentCannotBeSet() throws Exception
+    {
+        CodeMacroParameters parameters = javaParameters();
+        parameters.setTitle("[[Missing]]");
+        when(this.baseReferenceResolver.resolve(any())).thenReturn(BASE);
+        when(this.documentAccessBridge.getCurrentDocumentReference()).thenReturn(this.contextDocument);
+        Exception cause = new Exception("store error");
+        doThrow(cause).when(this.documentAccessBridge).pushDocumentInContext(any(), eq(this.contextDocument));
+
+        getId(createContext(PAGE, 1, CONTENT), CONTENT, parameters);
+        RenderingException exception = assertThrows(RenderingException.class, () -> this.renderer.render(true, true));
+
+        assertEquals("Failed to set the context document [wiki:Space.Page]", exception.getMessage());
+        assertSame(cause, exception.getCause());
+        // The previous context document was not replaced, so there's nothing to restore.
+        verify(this.documentAccessBridge, never()).popDocumentFromContext(any());
+        verifyNoInteractions(this.codeMacro);
+    }
+
+    @Test
+    void renderAsynchronouslyWithoutContextDocumentWithoutTitleOrImage() throws Exception
+    {
+        // The result is shared by the code macros of all the documents, so it doesn't depend on the context document.
+        when(this.documentAccessBridge.getCurrentDocumentReference()).thenReturn(this.contextDocument);
+        when(this.codeMacro.executeCodeMacro(any(), eq(CONTENT), any()))
+            .thenReturn(Collections.singletonList(new WordBlock("highlighted")));
+        BlockRenderer blockRenderer = mockBlockRenderer();
+
+        getId(createContext(PAGE, 1, CONTENT), CONTENT, javaParameters());
+        this.renderer.render(true, true);
+
+        verify(blockRenderer).render(any(Block.class), any());
+        verify(this.documentAccessBridge, never()).pushDocumentInContext(any(), any(DocumentReference.class));
+    }
+
+    @Test
+    void renderSynchronouslyKeepsContextDocument() throws Exception
+    {
+        // The synchronous rendering already happens in the document containing the macro.
+        CodeMacroParameters parameters = javaParameters();
+        parameters.setTitle("[[Missing]]");
+        when(this.baseReferenceResolver.resolve(any())).thenReturn(BASE);
+        when(this.documentAccessBridge.getCurrentDocumentReference()).thenReturn(this.contextDocument);
+        List<Block> highlighted = Collections.singletonList(new WordBlock("highlighted"));
+        when(this.codeMacro.executeCodeMacro(any(), eq(CONTENT), any())).thenReturn(highlighted);
+
+        getId(createContext(PAGE, 1, CONTENT), CONTENT, parameters);
+
+        assertEquals(List.of(new MetaDataBlock(highlighted, MetaData.BASE, BASE)),
+            this.renderer.render(false, true).getBlock().getChildren());
+        verify(this.documentAccessBridge, never()).pushDocumentInContext(any(), any(DocumentReference.class));
+    }
+
+    private BlockRenderer mockBlockRenderer() throws Exception
+    {
+        BlockRenderer blockRenderer = mock(BlockRenderer.class);
+        when(this.contextComponentManager.getInstance(BlockRenderer.class, Syntax.XHTML_1_0.toIdString()))
+            .thenReturn(blockRenderer);
+        return blockRenderer;
+    }
+
     private CodeMacroParameters javaParameters()
     {
         CodeMacroParameters parameters = new CodeMacroParameters();
@@ -265,6 +390,7 @@ class CodeCachedBlockAsyncRendererTest
 
         MacroTransformationContext context =
             new MacroTransformationContext(new TransformationContext(xdom, Syntax.XWIKI_2_1));
+        context.getTransformationContext().setTargetSyntax(Syntax.XHTML_1_0);
         context.setXDOM(xdom);
         context.setCurrentMacroBlock(macroBlock);
         context.setSyntax(Syntax.XWIKI_2_1);

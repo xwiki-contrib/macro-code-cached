@@ -33,7 +33,7 @@
   <description>Cached Code macro for improved performances</description>
   <url>https://extensions.xwiki.org/xwiki/bin/view/Extension/Caching%20Code%20Macro/</url>
   <properties>
-    <xwiki.jacoco.instructionRatio>0.90</xwiki.jacoco.instructionRatio>
+    <xwiki.jacoco.instructionRatio>0.92</xwiki.jacoco.instructionRatio>
     <!-- Extension Manager category -->
     <xwiki.extension.category>macro</xwiki.extension.category>
     <xwiki.issueManagement.system>jira</xwiki.issueManagement.system>
@@ -61,6 +61,15 @@
       <groupId>org.xwiki.platform</groupId>
       <artifactId>xwiki-platform-rendering-async-default</artifactId>
       <version>${platform.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.xwiki.platform</groupId>
+      <artifactId>xwiki-platform-bridge</artifactId>
+      <version>${platform.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>commons-codec</groupId>
+      <artifactId>commons-codec</artifactId>
     </dependency>
     <!-- Test dependencies -->
     <dependency>
